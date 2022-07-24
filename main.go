@@ -28,7 +28,9 @@ func main() {
 	if err != nil {
 		return
 	}
-	_, _ = fmt.Fprintf(os.Stderr, "unknown args: %v", args)
+	if len(args) != 0 {
+		_, _ = fmt.Fprintf(os.Stderr, "unknown args: %v", args)
+	}
 	if len(opts.Verbose) != 0 {
 		logger.SetLevel(logrus.DebugLevel)
 	}
