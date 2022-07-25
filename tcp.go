@@ -33,6 +33,9 @@ func onTCPPacketReceive(handle *pcap.Handle, packet gopacket.Packet) {
 	}
 	ipStr := srcIP.String()
 	l4 := packet.Layer(layers.LayerTypeTCP).(*layers.TCP)
+	if l4 == nil {
+		return
+	}
 	switch {
 	case l4.SYN && l4.ACK:
 		// server's first packet, if the next is RST, handle it, otherwise, drop it
