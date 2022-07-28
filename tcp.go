@@ -21,10 +21,12 @@ func onTCPPacketReceive(handle *pcap.Handle, packet gopacket.Packet) {
 	var srcIP net.IP
 	var dstIP net.IP
 	mask := 32
-	if l3 := packet.Layer(layers.LayerTypeIPv4).(*layers.IPv4); l3 != nil {
+	if l3 := packet.Layer(layers.LayerTypeIPv4); l3 != nil {
+		l3 := l3.(*layers.IPv4)
 		srcIP = l3.SrcIP
 		dstIP = l3.DstIP
-	} else if l3 := packet.Layer(layers.LayerTypeIPv6).(*layers.IPv6); l3 != nil {
+	} else if l3 := packet.Layer(layers.LayerTypeIPv6); l3 != nil {
+		l3 := l3.(*layers.IPv6)
 		mask = 128
 		srcIP = l3.SrcIP
 		dstIP = l3.DstIP
@@ -32,10 +34,11 @@ func onTCPPacketReceive(handle *pcap.Handle, packet gopacket.Packet) {
 		panic("unknown type layer 3")
 	}
 	ipStr := srcIP.String()
-	l4 := packet.Layer(layers.LayerTypeTCP).(*layers.TCP)
-	if l4 == nil {
+	l4p := packet.Layer(layers.LayerTypeTCP)
+	if l4p == nil {
 		return
 	}
+	l4 := l4p.(*layers.TCP)
 	switch {
 	case l4.SYN && l4.ACK:
 		// server's first packet, if the next is RST, handle it, otherwise, drop it
