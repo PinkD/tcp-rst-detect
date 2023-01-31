@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"os"
 
 	"github.com/jessevdk/go-flags"
@@ -10,13 +11,15 @@ import (
 )
 
 var setName string
+var ignoreNetworks []*net.IPNet
 
 var opts struct {
 	Verbose []bool `short:"v" long:"verbose" description:"Show debug information"`
 
-	InterfaceName string `short:"i" long:"interface" description:"listen interface name" required:"true"`
-	SetName       string `short:"s" long:"set-name" description:"ipset name" required:"true"`
-	DBName        string `short:"d" long:"db-name" description:"database name, default is data.db" required:"false"`
+	IgnoreNetworks []string `short:"n" long:"network" description:"ignore ips in network" required:"false"`
+	InterfaceName  string   `short:"i" long:"interface" description:"listen interface name" required:"true"`
+	SetName        string   `short:"s" long:"set-name" description:"ipset name" required:"true"`
+	DBName         string   `short:"d" long:"db-name" description:"database name, default is data.db" required:"false"`
 }
 
 var db *DB
@@ -47,6 +50,14 @@ func main() {
 		return
 	}
 	setName = opts.SetName
+	for _, network := range opts.IgnoreNetworks {
+		_, net, err := net.ParseCIDR(network)
+		if err != nil {
+			panic(fmt.Sprintf("failed to parse network %s: %s", network, err))
+		}
+		logger.Infof("Add %s to ignore network list", network)
+		ignoreNetworks = append(ignoreNetworks, net)
+	}
 	interfaceName := opts.InterfaceName
 	device := getDevice(interfaceName)
 	if device == nil {

@@ -51,6 +51,11 @@ func onTCPPacketReceive(handle *pcap.Handle, packet gopacket.Packet) {
 	default:
 		if ok := serverConnSet.CheckAndRemove(ipStr); ok {
 			if l4.RST {
+				for _, network := range ignoreNetworks {
+					if network.Contains(srcIP) || network.Contains(dstIP) {
+						return
+					}
+				}
 				netStr := fmt.Sprintf("%s/%d", ipStr, mask)
 				logger.Infof("ipset add %s %s", setName, netStr)
 				err := ipset.Add(setName, netStr)
@@ -83,34 +88,35 @@ see https://github.com/dlundquist/sniproxy/blob/master/src/tls.c
 
 packet layout:
 TLSv1 Record Layer: Handshake Protocol: Client Hello
-    Content Type: Handshake (22)
-    Version: TLS 1.0 (0x0301)
-    Length: 512
-    Handshake Protocol: Client Hello
-        Handshake Type: Client Hello (1)
-        Length: 508
-        Version: TLS 1.2 (0x0303)
-        Random: 0000000000000000000000000000000000000000000000000000000000000000
-        Session ID Length: 32
-        Session ID: 0000000000000000000000000000000000000000000000000000000000000000
-        Cipher Suites Length: 62
-        Cipher Suites (31 suites)
-        Compression Methods Length: 1
-        Compression Methods (1 method)
-        Extensions Length: 373
-        Extension: server_name (len=18)
-        Extension: ec_point_formats (len=4)
-        Extension: supported_groups (len=12)
-        Extension: next_protocol_negotiation (len=0)
-        Extension: application_layer_protocol_negotiation (len=14)
-        Extension: encrypt_then_mac (len=0)
-        Extension: extended_master_secret (len=0)
-        Extension: post_handshake_auth (len=0)
-        Extension: signature_algorithms (len=42)
-        Extension: supported_versions (len=5)
-        Extension: psk_key_exchange_modes (len=2)
-        Extension: key_share (len=38)
-        Extension: padding (len=186)
+
+	Content Type: Handshake (22)
+	Version: TLS 1.0 (0x0301)
+	Length: 512
+	Handshake Protocol: Client Hello
+	    Handshake Type: Client Hello (1)
+	    Length: 508
+	    Version: TLS 1.2 (0x0303)
+	    Random: 0000000000000000000000000000000000000000000000000000000000000000
+	    Session ID Length: 32
+	    Session ID: 0000000000000000000000000000000000000000000000000000000000000000
+	    Cipher Suites Length: 62
+	    Cipher Suites (31 suites)
+	    Compression Methods Length: 1
+	    Compression Methods (1 method)
+	    Extensions Length: 373
+	    Extension: server_name (len=18)
+	    Extension: ec_point_formats (len=4)
+	    Extension: supported_groups (len=12)
+	    Extension: next_protocol_negotiation (len=0)
+	    Extension: application_layer_protocol_negotiation (len=14)
+	    Extension: encrypt_then_mac (len=0)
+	    Extension: extended_master_secret (len=0)
+	    Extension: post_handshake_auth (len=0)
+	    Extension: signature_algorithms (len=42)
+	    Extension: supported_versions (len=5)
+	    Extension: psk_key_exchange_modes (len=2)
+	    Extension: key_share (len=38)
+	    Extension: padding (len=186)
 */
 func extractDomainFromPayload(data []byte) string {
 	if len(data) == 0 || data[0] != 0x16 {
